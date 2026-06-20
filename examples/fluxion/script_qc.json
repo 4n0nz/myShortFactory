@@ -1,0 +1,320 @@
+{
+  "meta": {
+    "voice": "fr-CA-ThierryNeural",
+    "rate": "+15%",
+    "pitch": "-16Hz",
+    "fps": 30,
+    "width": 1920,
+    "height": 1080
+  },
+  "scenes": [
+    {
+      "id": "intro_title",
+      "type": "title",
+      "host": "pip",
+      "narration": "Imagine ton setup d'audit WiFi. Dix terminal windows. airodump-ng dans un, hostapd dans un autre, mdk4, lighttpd, dhcpd — tout wired à la main. Fluxion run tout ça depuis un seul script bash — scan, handshake capture, rogue AP, captive portal — le flow complet, orchestré. Et reste jusqu'à la fin : quand on arrive au captive portal et que tu vois comment les passwords sont vérifiés en temps réel contre le handshake capturé, ça va changer ta façon de voir le WiFi security auditing.",
+      "props": {
+        "title": "Fluxion",
+        "subtitle": "WiFi Security Auditing. Social Engineering. Pure Bash.",
+        "badge": "Security Research"
+      }
+    },
+    {
+      "id": "contexte_bullets",
+      "type": "bullets",
+      "host": "pip",
+      "narration": "Fluxion c'est un tool de security audit et de social engineering research pour les réseaux WiFi WPA et WPA2. Le principe : pas de brute force, pas de wordlists, pas de rainbow tables. On capture le handshake de l'AP target, on clone le réseau avec un rogue access point, et on présente un captive portal aux clients. Quand ils soumettent leur password, il est vérifié immédiatement contre le handshake capturé. L'attaque se termine automatiquement dès qu'une clé valide est trouvée.",
+      "props": {
+        "heading": "Qu'est-ce que Fluxion ?",
+        "bullets": [
+          "Security audit & social engineering research",
+          "WPA / WPA2 — no brute force, no wordlist",
+          "Rogue AP + DNS redirect + captive portal",
+          "Password vérifié en temps réel contre le handshake",
+          "Auto-terminates when correct key is submitted"
+        ]
+      }
+    },
+    {
+      "id": "contexte_stat",
+      "type": "stat",
+      "host": "pip",
+      "narration": "Pour te situer : le main script fluxion.sh fait 3 025 lignes de bash pur. L'interface supporte 19 langues — arabe, chinois, russe, et plus. Et la version active c'est la 6.30, maintenue par la communauté sur GitHub.",
+      "props": {
+        "items": [
+          { "value": "3 025", "label": "lignes de bash pur" },
+          { "value": "19", "label": "langues supportées" },
+          { "value": "v6.30", "label": "version active" }
+        ]
+      }
+    },
+    {
+      "id": "probleme_bullets",
+      "type": "bullets",
+      "host": "pip",
+      "narration": "Et le vrai problème que Fluxion résout, c'est la complexité d'orchestration. Un audit WiFi complet nécessite pas un tool — ça en nécessite une dizaine. Tu as besoin d'airodump-ng pour scanner, de cowpatty ou aircrack-ng pour vérifier les handshakes, de hostapd pour le rogue AP, de dhcpd pour le DHCP server, de lighttpd plus PHP pour le captive portal, de mdk4 pour le jammer. Ces tools doivent run en parallèle, dans le bon ordre, avec le bon cleanup après — iptables flush, interfaces back en managed mode, network manager restart. Personne veut gérer ça à la main à chaque audit.",
+      "props": {
+        "heading": "Le problème : orchestrer 10 tools à la fois",
+        "bullets": [
+          "10+ outils à coordonner manuellement",
+          "Ordre d'exécution critique et interdépendances",
+          "Cleanup iptables / interfaces / processus après l'attaque",
+          "Aucun framework d'orchestration unifié"
+        ]
+      }
+    },
+    {
+      "id": "chapter_architecture",
+      "type": "chapter",
+      "host": "hero",
+      "narration": "Chapitre un. Le moteur — comment Fluxion orchestre dix tools sans que tu aies à toucher à quoi que ce soit.",
+      "props": {
+        "num": "01",
+        "title": "Architecture — Le moteur de l'orchestration"
+      }
+    },
+    {
+      "id": "filetree_repo",
+      "type": "filetree",
+      "host": "pip",
+      "narration": "La structure du repo reflète cette modularité. Un main script central — fluxion.sh — qui source les libraries dans lib/ : HashUtils pour vérifier les handshakes, InterfaceUtils pour gérer les wireless interfaces, WindowUtils pour spawner les terminals xterm ou tmux. Les attaques sont dans attacks/, chacune avec son propre attack.sh. Le Captive Portal a ses portal templates dans sites/ — des imitations de login pages de routers réels, par marque.",
+      "props": {
+        "root": "fluxion/",
+        "tree": [
+          { "name": "fluxion.sh", "depth": 0, "dir": false },
+          { "name": "lib/", "depth": 0, "dir": true },
+          { "name": "HashUtils.sh", "depth": 1, "dir": false },
+          { "name": "InterfaceUtils.sh", "depth": 1, "dir": false },
+          { "name": "WindowUtils.sh", "depth": 1, "dir": false },
+          { "name": "SandboxUtils.sh", "depth": 1, "dir": false },
+          { "name": "attacks/", "depth": 0, "dir": true },
+          { "name": "Handshake Snooper/", "depth": 1, "dir": true },
+          { "name": "Captive Portal/", "depth": 1, "dir": true },
+          { "name": "language/", "depth": 0, "dir": true },
+          { "name": "en.sh  (+ 18 autres langues)", "depth": 1, "dir": false },
+          { "name": "preferences/", "depth": 0, "dir": true },
+          { "name": "scripts/", "depth": 0, "dir": true }
+        ]
+      }
+    },
+    {
+      "id": "architecture_overview",
+      "type": "architecture",
+      "host": "pip",
+      "narration": "À runtime, chaque composant run dans son propre window — xterm en mode graphique, tmux en headless. Le scanner airodump-ng capture les réseaux. Le jammer mdk4 force les clients à drop leur connexion. Le rogue AP hostapd les récupère. Et le captive portal lighttpd leur sert la fake login page. Fluxion joue le rôle de coordinator — il les start, les monitor, et si tu le coupes, il cleanup automatiquement : iptables flush, interfaces back en managed, network manager restart.",
+      "props": {
+        "nodes": [
+          { "label": "Scanner\n(airodump-ng)", "x": 0 },
+          { "label": "Rogue AP\n(hostapd)", "x": 1 },
+          { "label": "Jammer\n(mdk4)", "x": 2 },
+          { "label": "Captive Portal\n(lighttpd+PHP)", "x": 3 }
+        ],
+        "side": "Fluxion orchestre tous les composants"
+      }
+    },
+    {
+      "id": "code_dependencies",
+      "type": "code",
+      "host": "pip",
+      "narration": "Au démarrage, Fluxion vérifie automatiquement toutes ses dépendances. Cette liste c'est exactement les tools qu'il orchestre. aircrack-ng et cowpatty pour vérifier les handshakes. hostapd et lighttpd pour le rogue AP et le portal. mdk4 pour envoyer les deauth frames. dhcpd pour le DHCP server. Si quelque chose manque, il propose l'installation automatique.",
+      "props": {
+        "filename": "fluxion.sh",
+        "lang": "bash",
+        "code": "local requiredCLITools=(\n  \"aircrack-ng\" \"bc\" \"awk:awk|gawk|mawk\"\n  \"curl\" \"cowpatty\"\n  \"dhcpd:isc-dhcp-server|dhcp-server|dhcp\"\n  \"7zr:7zip-reduced|p7zip\"\n  \"hostapd\" \"lighttpd\"\n  \"iw\" \"macchanger\" \"mdk4\" \"dsniff\"\n  \"nmap\" \"openssl\"\n  \"php-cgi\" \"rfkill\" \"unzip\"\n  \"route:net-tools\"\n  \"iptables\" \"iptables-save:iptables\"\n  \"iptables-restore:iptables\"\n)",
+        "highlight": [1, 3, 8, 11]
+      }
+    },
+    {
+      "id": "chapter_handshake",
+      "type": "chapter",
+      "host": "hero",
+      "narration": "Chapitre deux. Le Handshake Snooper — la première phase de l'attaque. Sans un WPA2 handshake valide capturé, le captive portal ne peut pas vérifier les passwords soumis.",
+      "props": {
+        "num": "02",
+        "title": "Handshake Snooper — Capturer le hash WPA2"
+      }
+    },
+    {
+      "id": "terminal_scan",
+      "type": "terminal",
+      "host": "pip",
+      "narration": "Le flow démarre : tu run fluxion.sh en root, tu sélectionnes ta wireless interface, tu choisis le channel à scanner — 2.4GHz, 5GHz, ou les deux — et airodump-ng part. Une liste des APs détectés s'affiche avec le ESSID, le BSSID, le channel, le signal, le nombre de clients connectés. Tu sélectionnes ta target, et le Handshake Snooper démarre automatiquement.",
+      "props": {
+        "commands": [
+          "sudo ./fluxion.sh",
+          "sudo ./fluxion.sh -i",
+          "sudo ./fluxion.sh --scan-only --interface wlan0mon --band bg"
+        ]
+      }
+    },
+    {
+      "id": "code_arbiter",
+      "type": "code",
+      "host": "pip",
+      "narration": "Le coeur du Handshake Snooper c'est l'arbiter daemon. Il start le captor — airodump-ng focusé sur le BSSID et le channel de ta target — et le deauthenticator — mdk4 qui envoie des deauth frames broadcast pour forcer les clients à drop leur connexion. Chaque reconnexion génère un handshake. Le daemon loop en continu, vérifiant le .cap file à intervalle régulier, jusqu'à trouver un handshake valide.",
+      "props": {
+        "filename": "attacks/Handshake Snooper/attack.sh",
+        "lang": "bash",
+        "code": "handshake_snooper_start_captor\nhandshake_snooper_start_deauthenticator\n\nlocal handshake_snooper_arbiter_daemon_verified=1\n\nwhile [ $handshake_snooper_arbiter_daemon_verified -ne 0 ]; do\n  now=$(env -i date '+%H:%M:%S')\n  echo -e \"[$now] $(io_dynamic_output $HandshakeSnooperSnoopingForNSecondsNotice)\" \\\n    >> \"$FLUXIONWorkspacePath/handshake_snooper.log\"\n  fluxion_status \"SNOOPING interval=${HandshakeSnooperVerifierInterval}s\"\n  sleep $HandshakeSnooperVerifierInterval &\n  wait $!\ndone",
+        "highlight": [1, 2, 6, 11]
+      }
+    },
+    {
+      "id": "code_hashutils",
+      "type": "code",
+      "host": "pip",
+      "narration": "La vérification du handshake passe par HashUtils.sh. Trois verifiers disponibles : aircrack-ng, cowpatty, ou pyrit. Pour aircrack-ng, le script lit le .cap file capturé et extrait les lignes qui matchent le MAC address et le SSID de ta target. Si le handshake est là et valide, la variable HASHCheckHandshake passe à valid — et la phase deux peut démarrer.",
+      "props": {
+        "filename": "lib/HashUtils.sh",
+        "lang": "bash",
+        "code": "\"aircrack-ng\")\n  readarray analysis < <(\n    aircrack-ng \"$handshakePath\" 2> $HashOutputDevice\n  )\n  if [ \"${#analysis[@]}\" -eq 0 -o $? != 0 ]; then\n    echo \"Error: aircrack-ng seems to be broken!\" \\\n      > $HashOutputDevice\n    return 1\n  fi\n\n  local hashData=$(echo \"${analysis[@]}\" | \\\n    grep -E \"${handshakeAPMAC^^}\\s+\" | \\\n    grep -F \"$handshakeAPSSID\")\n  ;;",
+        "highlight": [3, 11, 12, 13]
+      }
+    },
+    {
+      "id": "chapter_portal",
+      "type": "chapter",
+      "host": "hero",
+      "narration": "Chapitre trois. Le Captive Portal attack — là où le social engineering entre en jeu pour récupérer la clé WPA sans aucun brute force.",
+      "props": {
+        "num": "03",
+        "title": "Captive Portal — Social Engineering en action"
+      }
+    },
+    {
+      "id": "architecture_portal",
+      "type": "architecture",
+      "host": "pip",
+      "narration": "Voilà le flow complet du Captive Portal. Le jammer mdk4 broadcast des deauth frames pour kick les clients du vrai AP. Ils tentent de se reconnecter et tombent sur ton rogue AP — même SSID, un bit différent dans le BSSID. Toutes leurs requêtes DNS sont redirigées par dnsmasq vers ton server. lighttpd sert la fake login page qui imite leur router. Ils entrent leur password, et l'authenticator PHP le vérifie en temps réel contre le .cap handshake capturé en phase un.",
+      "props": {
+        "nodes": [
+          { "label": "Client\n(victime)", "x": 0 },
+          { "label": "Rogue AP\n(hostapd)", "x": 1 },
+          { "label": "DNS Redirect\n(dnsmasq)", "x": 2 },
+          { "label": "lighttpd\n+ PHP auth", "x": 3 }
+        ],
+        "side": "Password vérifié contre le .cap en temps réel"
+      }
+    },
+    {
+      "id": "code_portal_params",
+      "type": "code",
+      "host": "pip",
+      "narration": "Dans l'attack script, la gateway du rogue network est 192.169.254.1 — une adresse intentionnellement uncommon pour ne pas collider avec le réseau de la cible. Les logs sont séparés : pwdlog pour les passwords récupérés, netlog pour les connexions réseau. Cette architecture permet à Fluxion de s'auto-terminer proprement dès que le bon password est soumis.",
+      "props": {
+        "filename": "attacks/Captive Portal/attack.sh",
+        "lang": "bash",
+        "code": "CaptivePortalState=\"Not Ready\"\n\nCaptivePortalPassLog=\"$FLUXIONPath/attacks/Captive Portal/pwdlog\"\nCaptivePortalNetLog=\"$FLUXIONPath/attacks/Captive Portal/netlog\"\n\n# ============= < Virtual Network Configuration > ============ #\n# To avoid collapsing with an already existing network,\n# we'll use a somewhat uncommon network and server IP.\nCaptivePortalGatewayAddress=\"192.169.254.1\"\nCaptivePortalGatewayNetwork=${CaptivePortalGatewayAddress%.*}",
+        "highlight": [3, 4, 9]
+      }
+    },
+    {
+      "id": "code_authenticator",
+      "type": "code",
+      "host": "pip",
+      "narration": "Et voilà le coeur du système de vérification — l'authenticator PHP. Il accepte les passwords sous plusieurs noms de champs pour couvrir les différents templates de router : password, passphrase, key, wpa. Il écrit le candidat dans candidate.txt et crée un trigger file. Un bash script externe poll ce fichier et le vérifie contre le handshake. Si ça match, le PHP redirige vers final.html et Fluxion s'arrête automatiquement. Sinon, error.html — et le client peut réessayer.",
+      "props": {
+        "filename": "attacks/Captive Portal/lib/authenticator.php",
+        "lang": "php",
+        "code": "$candidate_key_fields = array(\n  \"password\", \"password1\", \"passphrase\",\n  \"key\", \"key1\", \"wpa\", \"wpa_psw\");\n\n$candidate_key_fields_matches = array_intersect_key(\n  $_POST, array_flip($candidate_key_fields));\n\n$candidate_key = reset($candidate_key_fields_matches);\n$candidate_key_result = 0;\n\nif(!empty($candidate_key)) {\n  $candidate_key_path = \"$FLUXIONWorkspacePath/candidate.txt\";\n  $candidate_key_file = fopen($candidate_key_path, \"w\");\n  fwrite($candidate_key_file, $candidate_key);\n  fclose($candidate_key_file);\n}",
+        "highlight": [1, 5, 11, 14]
+      }
+    },
+    {
+      "id": "chapter_cli",
+      "type": "chapter",
+      "host": "hero",
+      "narration": "Chapitre quatre. Le CLI et le mode auto — pour scripter tes audits et les intégrer dans un pipeline de pentest.",
+      "props": {
+        "num": "04",
+        "title": "CLI & Auto Mode — Scripter tes audits"
+      }
+    },
+    {
+      "id": "code_cli",
+      "type": "code",
+      "host": "pip",
+      "narration": "Le parser CLI est built avec getopt enhanced. En mode interactif, tu navigues les menus. En mode auto avec le flag --auto, tout passe en CLI : le BSSID et l'ESSID de ta target, l'attack à lancer, les interfaces pour le jammer et le rogue AP, le scan-time, la band. Parfait pour automatiser des audits ou intégrer Fluxion dans un script de pentest.",
+      "props": {
+        "filename": "fluxion.sh",
+        "lang": "bash",
+        "code": "FLUXIONCLIArguments=$(\n  getopt \\\n    --options=\"vdkrinmthb:e:c:l:a:r\" \\\n    --longoptions=\"auto,bssid:,essid:,\\\nchannel:,language:,attack:,\\\ninterface:,jammer-interface:,\\\nap-interface:,tracker-interface:,\\\nap-service:,scan-time:,scan-only,\\\nlist-interfaces,band:,\\\ndebug,version,killer,help\" \\\n    --name=\"FLUXION V$FLUXIONVersion.$FLUXIONRevision\" \\\n    -- \"$@\"\n)",
+        "highlight": [3, 4, 6, 11]
+      }
+    },
+    {
+      "id": "terminal_auto",
+      "type": "terminal",
+      "host": "pip",
+      "narration": "Un audit complet en une ligne de commande. Tu passes le BSSID et l'ESSID de ta target, tu spécifies l'attack, les wireless interfaces à utiliser pour le jammer et le rogue AP. Fluxion scan automatiquement, sélectionne ta target, capture le handshake, et lance le captive portal sans aucune interaction. Le résultat final — password ou path du handshake — est loggé dans fluxion.status.",
+      "props": {
+        "commands": [
+          "sudo ./fluxion.sh --auto --bssid AA:BB:CC:DD:EE:FF --essid \"MyNetwork\" --attack \"Captive Portal\" --interface wlan0 --jammer-interface wlan1",
+          "cat /tmp/fluxspace/fluxion.status"
+        ]
+      }
+    },
+    {
+      "id": "chapter_install",
+      "type": "chapter",
+      "host": "hero",
+      "narration": "Chapitre cinq. L'installation — straightforward sur Kali Linux, moins de cinq minutes.",
+      "props": {
+        "num": "05",
+        "title": "Installation — Prêt en 5 minutes sur Kali"
+      }
+    },
+    {
+      "id": "install_kali",
+      "type": "install",
+      "host": "pip",
+      "narration": "Quatre étapes. Clone le repo, rentre dans le dossier, lance fluxion.sh avec le flag -i pour vérifier et installer les dépendances — Fluxion détecte ton package manager automatiquement. Sur Kali Linux, la plupart des tools sont déjà là. Une fois les dépendances confirmées, tu run sans flags pour le mode interactif ou avec --auto pour le mode scripté.",
+      "props": {
+        "title": "Installation sur Kali Linux",
+        "steps": [
+          {
+            "cmd": "git clone https://github.com/FluxionNetwork/fluxion.git",
+            "output": [
+              "Cloning into 'fluxion'...",
+              "remote: Enumerating objects: 1247, done.",
+              "Receiving objects: 100% (1247/1247), 8.34 MiB | 2.1 MiB/s, done."
+            ]
+          },
+          {
+            "cmd": "cd fluxion",
+            "output": []
+          },
+          {
+            "cmd": "sudo ./fluxion.sh -i",
+            "output": [
+              "[*] Checking dependencies...",
+              "[+] aircrack-ng found",
+              "[+] hostapd found",
+              "[+] lighttpd found",
+              "[+] mdk4 found",
+              "[+] All dependencies satisfied."
+            ]
+          },
+          {
+            "cmd": "sudo ./fluxion.sh",
+            "output": [
+              "FLUXION v6.30  <Fluxion Is The Future>",
+              "[*] Select your language"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "outro_title",
+      "type": "title",
+      "host": "pip",
+      "narration": "Ce que Fluxion change pour toi, c'est la barrière d'entrée. Ce qui prenait une heure de setup manuel — dix tools, six terminal windows, trois pages de notes — ça run maintenant avec un seul script bash. Pour les pentesters, les instructeurs en wireless security, les CTF players : tu as maintenant un lab complet et opérationnel en une commande. Le repo c'est FluxionNetwork slash fluxion sur GitHub. Utilise-le uniquement sur des réseaux où tu as une autorisation écrite.",
+      "props": {
+        "title": "Fluxion",
+        "subtitle": "github.com/FluxionNetwork/fluxion",
+        "badge": "Use Responsibly"
+      }
+    }
+  ]
+}

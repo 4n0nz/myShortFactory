@@ -1,0 +1,32 @@
+# deps & envs
+node_modules/
+.venv/
+.venv-xtts/
+__pycache__/
+*.pyc
+
+# generated artifacts (root only — keep examples/)
+/facts.json
+/script_qc*.json
+/script*.json
+/render-manifest.json
+/captions.json
+/cues.json
+/audio/
+/out/
+/work/
+/broll/
+/public/
+
+# media & big assets
+*.mp4
+*.wav
+*.mp3
+*.webm
+*.mkv
+*.tflite
+
+# logs & backups
+*.log
+*.bak
+*.bak.*
